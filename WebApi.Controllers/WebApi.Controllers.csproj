@@ -23,8 +23,4 @@
     <ProjectReference Include="..\WebApi.Data\WebApi.Data.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="V1\" />
-  </ItemGroup>
-
 </Project>

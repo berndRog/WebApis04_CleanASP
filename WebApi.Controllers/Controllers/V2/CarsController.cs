@@ -16,9 +16,8 @@ namespace WebApi.Controllers.V2;
 [Produces("application/json")] //default
 
 public class CarsController(
-   ControllerHelper helper,
-   IPersonRepository personRepository,
-   ICarRepository carRepository,
+   IPeopleRepository peopleRepository,
+   ICarsRepository carsRepository,
    IDataContext dataContext
 ) : ControllerBase {
 
@@ -30,7 +29,7 @@ public class CarsController(
    [ProducesResponseType(StatusCodes.Status200OK)]
    public ActionResult<IEnumerable<CarDto>> GetCars() {
       // get all cars 
-      var cars = carRepository.SelectAll();
+      var cars = carsRepository.SelectAll();
       return Ok(cars.Select(c => c.ToCarDto()));
    }
 
@@ -61,7 +60,7 @@ public class CarsController(
       [FromHeader] double? priceMax
    ) {
       // get all cars by attributes
-      var cars = carRepository.SelectByAttributes(maker, model, yearMin, yearMax, 
+      var cars = carsRepository.SelectByAttributes(maker, model, yearMin, yearMax, 
          priceMin, priceMax);
       return Ok(cars.Select(c => c.ToCarDto()));
    }
@@ -73,18 +72,13 @@ public class CarsController(
    [HttpGet("people/{personId:guid}/cars")]
    [EndpointSummary("Get all cars of a given person")]
    [ProducesResponseType(StatusCodes.Status200OK)]
-   [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
    public ActionResult<IEnumerable<CarDto>> GetCarsByPerson(
       [Description("Unique id for the given person")] 
       [FromRoute] Guid personId
    ) {
       // get all cars of a given person
-      var cars = carRepository.SelectByPersonId(personId);
-
-      return cars.Any() switch {
-         true => Ok(cars.Select(c => c.ToCarDto())),
-         false => helper.DetailsNotFound<IEnumerable<CarDto>>("No cars found for given personId")
-      };
+      var cars = carsRepository.SelectByPersonId(personId);
+      return Ok(cars.Select(c => c.ToCarDto()));
    }
    
    /// <summary>
@@ -95,7 +89,7 @@ public class CarsController(
       [Description("Unique id of the car to be search for")] 
       [FromRoute] Guid id
    ) {
-      return carRepository.FindById(id) switch {
+      return carsRepository.FindById(id) switch {
          Car car => Ok(car.ToCarDto()),
          null => NotFound("Car with given id not found")
       };
@@ -116,13 +110,13 @@ public class CarsController(
       [Description("CarDto of the new car's data")]
       [FromBody]  CarDto carDto
    ) {
-      if(carRepository.FindById(carDto.Id) != null)
-         return helper.DetailsBadRequest<CarDto>("Car with given Id already exists");
+      if(carsRepository.FindById(carDto.Id) != null)
+         return BadRequest("Car with given Id already exists");
       
       // find person in the repository
-      var person = personRepository.FindById(personId);
+      var person = peopleRepository.FindById(personId);
       if (person == null)
-         return helper.DetailsBadRequest<CarDto>("personId doesn't exist");
+         return BadRequest("personId doesn't exist");
       
       // map Dto to entity
       var car = carDto.ToCar();
@@ -130,8 +124,8 @@ public class CarsController(
       person.AddCar(car);
       
       // add car to repository and save changes
-      carRepository.Add(car); 
-      dataContext.SaveChanges();
+      carsRepository.Add(car); 
+      dataContext.SaveAllChanges();
       
       // return created car as Dto
       var requestPath = Request?.Path ?? $"http://localhost:5200/carshop/cars/{car.Id}";
@@ -161,12 +155,10 @@ public class CarsController(
    ) {
 
       // check if Id in the route and body match
-      if(personId != updCarDto.Id) return helper.DetailsBadRequest<CarDto>(
-            "Update Car: Id in the route and body do not match");
+      if(personId != updCarDto.Id) return BadRequest("Update Car: Id in the route and body do not match");
       // check if person with given Id exists
-      var car = carRepository.FindById(id);
-      if (car == null) return helper.DetailsNotFound<CarDto>(
-         "Update Car: Car with given id not found");
+      var car = carsRepository.FindById(id);
+      if (car == null) return NotFound("Update Car: Car with given id not found");
 
       // map dto to entity
       var updCar = updCarDto.ToCar();
@@ -174,8 +166,8 @@ public class CarsController(
       car.Update(updCar);
       
       // save to repository and write changes 
-      carRepository.Update(car);
-      dataContext.SaveChanges();
+      carsRepository.Update(car);
+      dataContext.SaveAllChanges();
       
       return Ok(car.ToCarDto());
    }
@@ -196,18 +188,18 @@ public class CarsController(
       [FromRoute] Guid id
    ) {
       // find person in the repository
-      var person = personRepository.FindById(personId);
+      var person = peopleRepository.FindById(personId);
       if(person == null) return NotFound("Delete Car: Person not found.");
       // find car in the repository
-      var car = carRepository.FindById(id); 
+      var car = carsRepository.FindById(id); 
       if(car == null) return NotFound("Delete Car: Car not found.");
       
       // remove car from person in the doimain model
       person.RemoveCar(car);
       
       // save to repository and write changes 
-      carRepository.Remove(car);
-      dataContext.SaveChanges();
+      carsRepository.Remove(car);
+      dataContext.SaveAllChanges();
 
       // return no content
       return NoContent(); 

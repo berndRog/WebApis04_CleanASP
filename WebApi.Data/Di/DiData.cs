@@ -8,8 +8,8 @@ public static class DiData {
    public static IServiceCollection AddData(
       this IServiceCollection services
    ){
-      services.AddSingleton<IPersonRepository, PersonRepository>();
-      services.AddSingleton<ICarRepository, CarRepository>();
+      services.AddSingleton<IPeopleRepository, PeopleRepository>();
+      services.AddSingleton<ICarsRepository, CarsRepository>();
       services.AddSingleton<IDataContext, DataContext>();
       return services;
    }

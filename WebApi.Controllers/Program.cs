@@ -25,7 +25,6 @@ public class Program {
       
       // Add controllers
       builder.Services.AddControllers();
-      builder.Services.AddScoped<ControllerHelper>();
       
       builder.Services.AddCore();
       builder.Services.AddData();
